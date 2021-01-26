@@ -1,20 +1,17 @@
 package com.github.dfauth.stream.dag;
 
+import com.github.dfauth.function.Function2;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
-import static com.github.dfauth.trycatch.TryCatch.tryCatch;
-import static java.util.function.Function.identity;
+import static com.github.dfauth.Lists.*;
+import static com.github.dfauth.function.Function2.asFunction2;
 
 public class CurryUtils {
 
@@ -23,23 +20,33 @@ public class CurryUtils {
     }
 
     public static <T,S,R> Publisher<R> curryingMerge(int n, BiFunction<T, S, R> f, Publisher<T> left, Publisher<S> right) {
-        SubscriberFunction<S, R> leftFn = new SubscriberFunction<>(n);
-        SubscriberFunction<T, R> rightFn = new SubscriberFunction<>(n);
 
         // left and right streams are both split
         Flux<T> leftShare = Flux.from(left).share();
         Flux<S> rightShare = Flux.from(right).share();
 
-        // one copy is used to curry the function transforming the other stream
-        leftShare.map(curryLeft(f)).subscribe(leftFn);
-        rightShare.map(curryRight(f)).subscribe(rightFn);
-
         // another copy is used to transform the stream to the output
-        Flux<R> leftOutput = leftShare.flatMap(rightFn.andThen(Mono::justOrEmpty));
-        Flux<R> rightOutput = rightShare.flatMap(leftFn.andThen(Mono::justOrEmpty));
+        Publisher<R> leftOutput = curryingTransformation(leftShare, f, rightShare);
+        Publisher<R> rightOutput = curryingTransformation(rightShare, asFunction2(f).flip(), leftShare);
 
         // the results are merged into one stream
-        return leftOutput.mergeWith(rightOutput);
+        return Flux.from(leftOutput).mergeWith(rightOutput);
+    }
+
+    public static <T,S,R> Publisher<R> curryingTransformation(Publisher<T> cachedInput, BiFunction<T,S,R> f, Publisher<S> input) {
+        return curryingTransformation(16, cachedInput, f, input);
+    }
+
+    public static <T,S,R> Publisher<R> curryingTransformation(int n, Publisher<T> cachedInput, BiFunction<T,S,R> f, Publisher<S> input) {
+
+        // Both a Function<T,Optional<R>> and a Subscriber<Function<T,R>> - used to map the input
+        SubscriberFunction<S, R> subscriberFn = new SubscriberFunction<>(n);
+
+        // cachedInput is fed to the curriedFn to create a partially applied fn cached in subscriberFn
+        Flux.from(cachedInput).map(asFunction2(f).curried()).subscribe(subscriberFn);
+
+        // return a publisher which will stream the input transformed by the cached partially applied function
+        return Flux.from(input).flatMap(subscriberFn.andThen(Mono::justOrEmpty));
     }
 
     public static <T,S,R> Publisher<?> curryingMerge(Function<T, Function<S,R>> f, Publisher<?>... publishers) {
@@ -58,13 +65,13 @@ public class CurryUtils {
                 throw new IllegalArgumentException("list must be have at least 2 members");
             case 2 :
                 return curryingMerge(n,
-                        uncurry(f),
-                        (Publisher<T>) headOpt(publishers).get(),
+                        Function2.uncurry(f),
+                        (Publisher<T>) head(publishers),
                         (Publisher<S>) tail(publishers).get(0)
                 );
             default:
                 List<Publisher<?>> reversed = reverse(publishers);
-                Publisher<?> head = headOpt(reversed).get();
+                Publisher<?> head = head(reversed);
                 List<Publisher<?>> tail = tail(reversed);
                 return curryingMerge(n,
                         (T _t, S _f) -> ((Function<T,R>)_f).apply(_t),
@@ -72,93 +79,5 @@ public class CurryUtils {
                         (Publisher<S>) curryingMerge(n, f, reverse(tail))
                 );
         }
-    }
-
-    private static <T> List<T> reverse(List<T> list) {
-        ArrayList<T> tmp = new ArrayList<>(list);
-        Collections.reverse(tmp);
-        return tmp;
-    }
-
-    private static <T> Optional<T> headOpt(List<T> list) {
-        return list.size() > 0 ? Optional.of(list.get(0)) : Optional.empty();
-    }
-
-    private static <T> List<T> tail(List<T> list) {
-        return list.size() > 1 ? list.subList(1,list.size()) : Collections.emptyList();
-    }
-
-    public static <T,S,R> Function<T, Function<S, R>> curry(BiFunction<T, S, R> f) {
-        return curryLeft(f);
-    }
-
-    public static <T,S,R> Function<T, Function<S, R>> curryLeft(BiFunction<T, S, R> f) {
-        return t -> s -> f.apply(t, s);
-    }
-
-    public static <T,S,R> Function<S, Function<T, R>> curryRight(BiFunction<T, S, R> f) {
-        return s -> t -> f.apply(t, s);
-    }
-
-    public static <T,S,R> BiFunction<T,S,R> uncurry(Function<T, Function<S, R>> f) {
-        return uncurryLeft(f);
-    }
-
-    public static <T,S,R> BiFunction<T,S,R> uncurryLeft(Function<T, Function<S, R>> f) {
-        return (t, s) -> tryCatch(() -> {
-            return f.apply(t).apply(s);
-        });
-    }
-
-    public static <T,S,R> BiFunction<S,T,R> uncurryRight(Function<T, Function<S, R>> f) {
-        return (t, s) -> tryCatch(() -> {
-            return f.apply(s).apply(t);
-        });
-    }
-
-    public static boolean isFunctionalInterface(Class cls) {
-        return cls.isInterface() &&
-                Stream.of(cls.getDeclaredMethods())
-                        .filter(m -> Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers()) && !m.isDefault())
-                        .peek(m ->
-                                System.out.println("m: "+m))
-                        .count() == 1;
-    }
-
-    public static Method getFunctionalInterfaceMethod(Class cls) {
-        return Stream.of(cls.getDeclaredMethods()).filter(m -> !m.isDefault()).findFirst().orElseThrow(() -> new IllegalArgumentException(cls.getCanonicalName()+" is not a FunctionalInterface"));
-    }
-
-    public static <T,R extends T> boolean isLambda(Class<T> classOfT) {
-        String className = classOfT.getName();
-        ClassLoader loader = classOfT.getClassLoader();
-        try {
-            loader.loadClass(className);
-            return false;
-        } catch (ClassNotFoundException e) {
-            return true;
-        }
-    }
-
-    public static <T,R extends T> boolean isLambdaOf(Class<R> cls, Class<T> interfaceClass) {
-        Method m = getFunctionalInterfaceMethod(interfaceClass);
-        return Stream.of(cls.getDeclaredMethods()).filter(_m ->
-                _m.getName().equals(m.getName()) &&
-                        _m.getParameterCount() == m.getParameterCount()
-        )
-                .findAny().isEmpty();
-    }
-
-    public static <T> Publisher<T> loggingProcessor(String loggerName, Publisher<T> p) {
-        BaseProcessor<T, T> p1 = new BaseProcessor<>(identity()) {
-            private final Logger logger = LoggerFactory.getLogger(loggerName);
-            @Override
-            public void onNext(T t) {
-                super.onNext(t);
-                logger.info("onNext({})",t);
-            }
-        };
-        p.subscribe(p1);
-        return p1;
     }
 }

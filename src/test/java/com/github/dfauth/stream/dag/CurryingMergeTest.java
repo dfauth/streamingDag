@@ -269,7 +269,7 @@ public class CurryingMergeTest {
         assertTrue(q.size() == 0);
     }
 
-    private void pause() {
+    public static void pause() {
         logger.info("pausing");
         tryCatch(() -> Thread.sleep(200));
     }
