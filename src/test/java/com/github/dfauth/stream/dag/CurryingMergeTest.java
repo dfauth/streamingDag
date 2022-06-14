@@ -2,17 +2,23 @@ package com.github.dfauth.stream.dag;
 
 import org.junit.Test;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
+import static com.github.dfauth.stream.dag.CurryUtils.biFunctionTransformer;
 import static com.github.dfauth.stream.dag.CurryUtils.curryingMerge;
+import static com.github.dfauth.stream.dag.Utils.subscribingFuture;
+import static com.github.dfauth.stream.dag.Utils.subscribingList;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -20,6 +26,36 @@ import static org.junit.Assert.assertTrue;
 public class CurryingMergeTest {
 
     private static final Logger logger = LoggerFactory.getLogger(CurryingMergeTest.class);
+
+    @Test
+    public void testIt() throws ExecutionException, InterruptedException, TimeoutException {
+        CompletableFuture<Integer> fut = new CompletableFuture<>();
+        Subscriber<Integer> s = subscribingFuture(fut);
+        biFunctionTransformer(Integer::sum).apply(Mono.just(1),Mono.just(2))
+                .subscribe(s);
+        assertEquals(3, (int)fut.get(10, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testItAgain() throws ExecutionException, InterruptedException, TimeoutException {
+        CompletableFuture<List<Integer>> fut = new CompletableFuture<>();
+        List<Integer> l = new ArrayList<>();
+        Subscriber<Integer> s = subscribingList(fut, l);
+        PublishingQueue<Integer> q1 = new PublishingQueue<>();
+        PublishingQueue<Integer> q2 = new PublishingQueue<>();
+        biFunctionTransformer(Integer::sum).apply(q1,q2).subscribe(s);
+        q1.offer(1);
+        assertEquals(Collections.emptyList(), l);
+        q2.offer(2);
+        assertEquals(List.of(3), l);
+        q1.offer(2);
+        assertEquals(List.of(3,4), l);
+        q2.offer(1);
+        assertEquals(List.of(3,4,3), l);
+        q1.stop();
+        q2.stop();
+        assertEquals(List.of(3,4,3), fut.get(10, TimeUnit.SECONDS));
+    }
 
     @Test
     public void testCurryingMerge() throws InterruptedException, TimeoutException, ExecutionException {
@@ -34,7 +70,7 @@ public class CurryingMergeTest {
             logger.info("r is " + r);
         });
 
-        curryingMerge(Integer::sum, nodeA, nodeB).subscribe(testingSubscriber);
+        biFunctionTransformer(Integer::sum).apply(nodeA, nodeB).subscribe(testingSubscriber);
 
         assertTrue(q.size() == 0);
 

@@ -1,11 +1,8 @@
 package com.github.dfauth.stream.dag;
 
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -13,55 +10,17 @@ import java.util.function.Function;
  * This is used to implement a Function applied to a stream whose implementation can change - by partially applying streamed values (from another stream)
  * to a function
  */
-public class SubscriberFunction<T,R> extends BaseSubscriber<Function<T,R>> implements Function<T,Optional<R>>, Subscriber<Function<T,R>> {
+public class SubscriberFunction<T,R> implements Consumer<Function<T,R>>, Function<T,Optional<R>> {
 
-    private final int n;
-    private final AtomicReference<Function<T,R>> ref = new AtomicReference<>();
-    private AtomicInteger latch = new AtomicInteger(0);
+    private AtomicReference<Function<T, R>> fn = new AtomicReference<>();
 
-    public SubscriberFunction() {
-        this(16);
-    }
-
-    public SubscriberFunction(int n) {
-        this.n = n;
+    @Override
+    public void accept(Function<T, R> f) {
+        fn.set(f);
     }
 
     @Override
     public Optional<R> apply(T t) {
-        return Optional.ofNullable(ref.get()).map(f -> f.apply(t));
-    }
-
-    @Override
-    protected void _onSubscribe(Subscription subscription) {
-        checkLatch(latch.get());
-    }
-
-    @Override
-    public void onNext(Function<T,R> f) {
-        ref.set(f);
-        checkLatch(this.latch.decrementAndGet());
-    }
-
-    @Override
-    public void onError(Throwable throwable) {
-        unset();
-    }
-
-    @Override
-    public void onComplete() {
-        unset();
-    }
-
-    private void checkLatch(int i) {
-        if(i <= 0) {
-            latch.set(n);
-            optSubscription.ifPresent(s -> s.request(n));
-        }
-    }
-
-    private void unset() {
-        ref.set(null);
-        optSubscription.ifPresent(s -> s.cancel());
+        return Optional.ofNullable(fn.get()).map(_f -> _f.apply(t));
     }
 }

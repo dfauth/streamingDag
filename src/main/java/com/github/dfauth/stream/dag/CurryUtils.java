@@ -15,6 +15,10 @@ import static com.github.dfauth.function.Function2.asFunction2;
 
 public class CurryUtils {
 
+    public static <T,R,S> BiFunction<Publisher<T>,Publisher<R>,Publisher<S>> biFunctionTransformer(BiFunction<T,R,S> f) {
+        return (a,b) -> curryingMerge(f, a, b);
+    }
+
     public static <T,S,R> Publisher<R> curryingMerge(BiFunction<T, S, R> f, Publisher<T> left, Publisher<S> right) {
 
         // left and right streams are both split
@@ -38,7 +42,7 @@ public class CurryUtils {
         Flux.from(cachedInput).map(asFunction2(f).curried()).subscribe(subscriberFn);
 
         // return a publisher which will stream the input transformed by the cached partially applied function
-        return Flux.from(input).flatMap(subscriberFn.andThen(Mono::justOrEmpty));
+        return Flux.from(input).flatMap(((Function<S, java.util.Optional<R>>)subscriberFn).andThen(Mono::justOrEmpty));
     }
 
     public static <T,S,R> Publisher<?> curryingMerge(Function<T, Function<S,R>> f, Publisher<?>... publishers) {
