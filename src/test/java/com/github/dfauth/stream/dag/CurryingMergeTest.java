@@ -23,7 +23,6 @@ public class CurryingMergeTest {
 
     @Test
     public void testCurryingMerge() throws InterruptedException, TimeoutException, ExecutionException {
-        BinaryOperator<Integer> sum = (a, b) -> a + b;
 
         Node<Integer, Integer> nodeA = Node.identity();
         Node<Integer, Integer> nodeB = Node.identity();
@@ -35,7 +34,7 @@ public class CurryingMergeTest {
             logger.info("r is " + r);
         });
 
-        curryingMerge(sum, nodeA, nodeB).subscribe(testingSubscriber);
+        curryingMerge(Integer::sum, nodeA, nodeB).subscribe(testingSubscriber);
 
         assertTrue(q.size() == 0);
 
