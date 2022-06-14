@@ -8,17 +8,13 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
 
 import static com.github.dfauth.stream.dag.CurryUtils.biFunctionTransformer;
 import static com.github.dfauth.stream.dag.CurryUtils.curryingMerge;
-import static com.github.dfauth.stream.dag.Utils.subscribingFuture;
-import static com.github.dfauth.stream.dag.Utils.subscribingList;
+import static com.github.dfauth.stream.dag.Utils.*;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -60,15 +56,14 @@ public class CurryingMergeTest {
     @Test
     public void testCurryingMerge() throws InterruptedException, TimeoutException, ExecutionException {
 
-        Node<Integer, Integer> nodeA = Node.identity();
-        Node<Integer, Integer> nodeB = Node.identity();
+        PublishingQueue<Integer> nodeA = new PublishingQueue<>();
+        PublishingQueue<Integer> nodeB = new PublishingQueue<>();
 
-        BlockingQueue<Integer> q = new ArrayBlockingQueue<>(10);
+        Queue<Integer> q = new ArrayBlockingQueue<>(10);
 
-        TestingSubscriber<Integer> testingSubscriber = new TestingSubscriber<>(r -> {
-            q.offer(r);
-            logger.info("r is " + r);
-        });
+        CompletableFuture<Queue<Integer>> f = new CompletableFuture<>();
+
+        Subscriber<Integer> testingSubscriber = subscribingQueue(f, q);
 
         biFunctionTransformer(Integer::sum).apply(nodeA, nodeB).subscribe(testingSubscriber);
 
@@ -76,37 +71,37 @@ public class CurryingMergeTest {
 
         int a=1, b=2;
         logger.info("stream created");
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
         pause();
         assertTrue(q.size() == 0);
 
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
         pause();
-        assertEquals(3, Optional.ofNullable(q.poll(2, TimeUnit.SECONDS)).orElseThrow(() -> new RuntimeException("Oops")).intValue());
+        assertEquals(3, Optional.ofNullable(q.poll()).orElseThrow(() -> new RuntimeException("Oops")).intValue());
 
         // update a
         a = 2;
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
         pause();
-        assertEquals(4, Optional.ofNullable(q.poll(2, TimeUnit.SECONDS)).orElseThrow(() -> new RuntimeException("Oops")).intValue());
+        assertEquals(4, Optional.ofNullable(q.poll()).orElseThrow(() -> new RuntimeException("Oops")).intValue());
 
         // update b
         b = 3;
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
         pause();
-        assertEquals(5, Optional.ofNullable(q.poll(2, TimeUnit.SECONDS)).orElseThrow(() -> new RuntimeException("Oops")).intValue());
+        assertEquals(5, Optional.ofNullable(q.poll()).orElseThrow(() -> new RuntimeException("Oops")).intValue());
 
         assertTrue(q.size() == 0);
 
         nodeA.stop();
         nodeB.stop();
 
-        List<Integer> result = testingSubscriber.toCompletableFuture().get(1, TimeUnit.SECONDS);
-        assertEquals(result.size(), 3); // four events
+        Queue<Integer> result = f.get(1, TimeUnit.SECONDS);
+        assertEquals(result.size(), 0);
         assertTrue(q.size() == 0);
     }
 
@@ -115,49 +110,48 @@ public class CurryingMergeTest {
     public void testCurryingNode1() throws InterruptedException, TimeoutException, ExecutionException {
         Function<Integer, Function<Double, Float>> sum = a -> b -> a.floatValue() + b.floatValue();
 
-        BlockingQueue<Float> q = new ArrayBlockingQueue<>(10);
+        PublishingQueue<Integer> nodeA = new PublishingQueue<>();
+        PublishingQueue<Double> nodeB = new PublishingQueue<>();
 
-        TestingSubscriber<Float> testingSubscriber = new TestingSubscriber<>(r -> {
-            q.offer(r);
-            logger.info("r is " + r);
-        });
+        Queue<Float> q = new ArrayBlockingQueue<>(10);
 
-        Node<Integer, Integer> nodeA = Node.identity();
-        Node<Double, Double> nodeB = Node.identity();
+        CompletableFuture<Queue<Float>> f = new CompletableFuture<>();
+
+        Subscriber<Float> testingSubscriber = subscribingQueue(f, q);
 
         ((Publisher<Float>)curryingMerge(sum, nodeA, nodeB)).subscribe(testingSubscriber);
 
         int a=1;
         double b=2;
         logger.info("stream created");
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
         pause();
         assertTrue(q.size() == 0);
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
         pause();
-        assertEquals(3, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(3, q.poll().intValue());
 
         // update a
         a = 2;
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
-        assertEquals(4, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(4, q.poll().intValue());
 
         // update b
         b = 3;
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
-        assertEquals(5, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(5, q.poll().intValue());
 
         assertTrue(q.size() == 0);
 
         nodeA.stop();
         nodeB.stop();
 
-        List<Float> result = testingSubscriber.toCompletableFuture().get(1, TimeUnit.SECONDS);
-        assertEquals(result.size(), 3); // three events
+        Queue<Float> result = f.get(1, TimeUnit.SECONDS);
+        assertEquals(result.size(), 0);
         assertTrue(q.size() == 0);
     }
 
@@ -166,16 +160,15 @@ public class CurryingMergeTest {
 //        Function<Integer, Function<Integer, Function<Integer, Integer>>> sum = a -> b -> c -> a + b + c;
         Function<Integer, Function<Double, Function<Float, Float>>> sum = a -> b -> c -> a.floatValue() + b.floatValue() + c;
 
-        BlockingQueue<Float> q = new ArrayBlockingQueue<>(10);
+        PublishingQueue<Integer> nodeA = new PublishingQueue<>();
+        PublishingQueue<Double> nodeB = new PublishingQueue<>();
+        PublishingQueue<Float> nodeC = new PublishingQueue<>();
 
-        TestingSubscriber<Float> testingSubscriber = new TestingSubscriber<>(r -> {
-            q.offer(r);
-            logger.info("r is " + r);
-        });
+        Queue<Float> q = new ArrayBlockingQueue<>(10);
 
-        Node<Integer, Integer> nodeA = Node.identity();
-        Node<Double, Double> nodeB = Node.identity();
-        Node<Float, Float> nodeC = Node.identity();
+        CompletableFuture<Queue<Float>> f = new CompletableFuture<>();
+
+        Subscriber<Float> testingSubscriber = subscribingQueue(f, q);
 
         ((Publisher<Float>)curryingMerge(sum, nodeA, nodeB, nodeC)).subscribe(testingSubscriber);
 
@@ -183,43 +176,43 @@ public class CurryingMergeTest {
         double b=2;
         float c=3;
         logger.info("stream created");
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
         pause();
         assertTrue(q.size() == 0);
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
         pause();
         assertTrue(q.size() == 0);
-        nodeC.update(c);
+        nodeC.offer(c);
         logger.info("c updated");
-        assertEquals(6, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(6, q.poll().intValue());
 
         // update a
         a = 2;
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
-        assertEquals(7, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(7, q.poll().intValue());
 
         // update b
         b = 3;
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
-        assertEquals(8, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(8, q.poll().intValue());
 
         // update c
         c = 4;
-        nodeC.update(c);
+        nodeC.offer(c);
         logger.info("c updated");
-        assertEquals(9, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(9, q.poll().intValue());
         assertTrue(q.size() == 0);
 
         nodeA.stop();
         nodeB.stop();
         nodeC.stop();
 
-        List<Float> result = testingSubscriber.toCompletableFuture().get(1, TimeUnit.SECONDS);
-        assertEquals(result.size(), 4); // four events
+        Queue<Float> result = f.get(1, TimeUnit.SECONDS);
+        assertEquals(result.size(), 0);
         assertTrue(q.size() == 0);
     }
 
@@ -234,17 +227,16 @@ public class CurryingMergeTest {
                         .valueOf(c))
                 .intValue();
 
-        BlockingQueue<Integer> q = new ArrayBlockingQueue<>(10);
+        PublishingQueue<Integer> nodeA = new PublishingQueue<>();
+        PublishingQueue<Double> nodeB = new PublishingQueue<>();
+        PublishingQueue<Float> nodeC = new PublishingQueue<>();
+        PublishingQueue<BigDecimal> nodeD = new PublishingQueue<>();
 
-        TestingSubscriber<Integer> testingSubscriber = new TestingSubscriber<>(r -> {
-            q.offer(r);
-            logger.info("r is " + r);
-        });
+        Queue<Integer> q = new ArrayBlockingQueue<>(10);
 
-        Node<Integer, Integer> nodeA = Node.identity();
-        Node<Double, Double> nodeB = Node.identity();
-        Node<Float, Float> nodeC = Node.identity();
-        Node<BigDecimal, BigDecimal> nodeD = Node.identity();
+        CompletableFuture<Queue<Integer>> f = new CompletableFuture<>();
+
+        Subscriber<Integer> testingSubscriber = subscribingQueue(f, q);
 
         ((Publisher<Integer>)curryingMerge(sum, nodeA, nodeB, nodeC, nodeD)).subscribe(testingSubscriber);
 
@@ -253,45 +245,45 @@ public class CurryingMergeTest {
         float c=3;
         BigDecimal d = BigDecimal.valueOf(4);
         logger.info("stream created");
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
         pause();
         assertTrue(q.size() == 0);
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
         pause();
         assertTrue(q.size() == 0);
-        nodeC.update(c);
+        nodeC.offer(c);
         logger.info("c updated");
         assertTrue(q.size() == 0);
-        nodeD.update(d);
+        nodeD.offer(d);
         logger.info("d updated");
-        assertEquals(10, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(10, q.poll().intValue());
 
         // update a
         a = 2;
-        nodeA.update(a);
+        nodeA.offer(a);
         logger.info("a updated");
-        assertEquals(11, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(11, q.poll().intValue());
 
         // update b
         b = 3;
-        nodeB.update(b);
+        nodeB.offer(b);
         logger.info("b updated");
-        assertEquals(12, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(12, q.poll().intValue());
 
         // update c
         c = 4;
-        nodeC.update(c);
+        nodeC.offer(c);
         logger.info("c updated");
-        assertEquals(13, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(13, q.poll().intValue());
         assertTrue(q.size() == 0);
 
         // update d
         d = BigDecimal.valueOf(5);
-        nodeD.update(d);
+        nodeD.offer(d);
         logger.info("d updated");
-        assertEquals(14, q.poll(2, TimeUnit.SECONDS).intValue());
+        assertEquals(14, q.poll().intValue());
         assertTrue(q.size() == 0);
 
         nodeA.stop();
@@ -299,8 +291,8 @@ public class CurryingMergeTest {
         nodeC.stop();
         nodeD.stop();
 
-        List<Integer> result = testingSubscriber.toCompletableFuture().get(1, TimeUnit.SECONDS);
-        assertEquals(result.size(), 5); // five events
+        Queue<Integer> result = f.get(1, TimeUnit.SECONDS);
+        assertEquals(result.size(), 0);
         assertTrue(q.size() == 0);
     }
 
