@@ -286,6 +286,11 @@ public class CurryingMergeTest {
         assertEquals(14, q.poll().intValue());
         assertTrue(q.size() == 0);
 
+        // update c again
+        nodeC.offer(7f);
+        assertEquals(17, q.poll().intValue());
+        assertTrue(q.size() == 0);
+
         nodeA.stop();
         nodeB.stop();
         nodeC.stop();
