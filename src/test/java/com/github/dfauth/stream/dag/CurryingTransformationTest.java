@@ -10,7 +10,6 @@ import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.function.BinaryOperator;
 
-import static com.github.dfauth.stream.dag.CurryUtils.curryingTransformation;
 import static com.github.dfauth.stream.dag.CurryingMergeTest.pause;
 import static com.github.dfauth.stream.dag.Utils.subscribingQueue;
 import static org.junit.Assert.assertEquals;
@@ -32,7 +31,7 @@ public class CurryingTransformationTest {
 
         Subscriber<Integer> testingSubscriber = subscribingQueue(f, q);
 
-        curryingTransformation(nodeA, sum, nodeB).subscribe(testingSubscriber);
+        CurryUtils.combineLatest(sum).apply(nodeA).apply(nodeB).subscribe(testingSubscriber);
 
         assertTrue(q.size() == 0);
 
