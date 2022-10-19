@@ -21,7 +21,7 @@ public class CurryingTransformationTest {
 
     @Test
     public void testCurryingTransformation() throws InterruptedException, TimeoutException, ExecutionException {
-        BinaryOperator<Integer> sum = (a, b) -> a + b;
+        BinaryOperator<Integer> sum = Integer::sum;
 
         PublishingQueue<Integer> nodeA = new PublishingQueue<>();
         PublishingQueue<Integer> nodeB = new PublishingQueue<>();

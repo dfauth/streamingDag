@@ -8,11 +8,11 @@ import java.util.*;
 
 public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>, Queue<T> {
 
-    private Optional<Subscriber<? super T>> optSub = Optional.empty();
+    private Subscriber<? super T> subscriber = null;
 
     @Override
     public boolean offer(T t) {
-        return optSub.map(s -> {
+        return Optional.ofNullable(subscriber).map(s -> {
             s.onNext(t);
             return true;
         }).orElse(false);
@@ -30,8 +30,8 @@ public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>
 
     @Override
     public void subscribe(Subscriber<? super T> subscriber) {
-        optSub = Optional.ofNullable(subscriber);
-        optSub.ifPresent(s -> s.onSubscribe(new Subscription() {
+        this.subscriber = subscriber;
+        Optional.ofNullable(this.subscriber).ifPresent(s -> s.onSubscribe(new Subscription() {
             @Override
             public void request(long l) {
             }
@@ -53,6 +53,6 @@ public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>
     }
 
     public void stop() {
-        optSub.ifPresent(Subscriber::onComplete);
+        Optional.ofNullable(this.subscriber).ifPresent(Subscriber::onComplete);
     }
 }

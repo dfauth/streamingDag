@@ -62,7 +62,6 @@ public class CurryUtils {
     public static <T,S,R> Publisher<?> curryingMerge(Function<T, Function<S,R>> f, List<Publisher<?>> publishers) {
         switch (publishers.size()) {
             case 0 : // should never happen
-                throw new IllegalArgumentException("list must be have at least 2 members");
             case 1 : // should never happen
                 throw new IllegalArgumentException("list must be have at least 2 members");
             case 2 :

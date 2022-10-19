@@ -12,7 +12,7 @@ import java.util.function.Function;
  */
 public class SubscriberFunction<T,R> implements Consumer<Function<T,R>>, Function<T,Optional<R>> {
 
-    private AtomicReference<Function<T, R>> fn = new AtomicReference<>();
+    private final AtomicReference<Function<T, R>> fn = new AtomicReference<>();
 
     @Override
     public void accept(Function<T, R> f) {
