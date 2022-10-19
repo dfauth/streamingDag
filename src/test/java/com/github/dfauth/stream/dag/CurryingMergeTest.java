@@ -14,7 +14,6 @@ import java.util.function.Function;
 
 import static com.github.dfauth.stream.dag.CurryUtils.biFunctionTransformer;
 import static com.github.dfauth.stream.dag.CurryUtils.curryingMerge;
-import static com.github.dfauth.stream.dag.Utils.*;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,7 +24,7 @@ public class CurryingMergeTest {
     @Test
     public void testIt() throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<Integer> fut = new CompletableFuture<>();
-        Subscriber<Integer> s = subscribingFuture(fut);
+        Subscriber<Integer> s = CompletableFutureSubscriber.subscribingFuture(fut);
         biFunctionTransformer(Integer::sum).apply(Mono.just(1),Mono.just(2))
                 .subscribe(s);
         assertEquals(3, (int)fut.get(10, TimeUnit.SECONDS));
@@ -35,7 +34,7 @@ public class CurryingMergeTest {
     public void testItAgain() throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<List<Integer>> fut = new CompletableFuture<>();
         List<Integer> l = new ArrayList<>();
-        Subscriber<Integer> s = subscribingList(fut, l);
+        Subscriber<Integer> s = CompletableFutureSubscriber.subscribingList(fut, l);
         PublishingQueue<Integer> q1 = new PublishingQueue<>();
         PublishingQueue<Integer> q2 = new PublishingQueue<>();
         biFunctionTransformer(Integer::sum).apply(q1,q2).subscribe(s);
@@ -56,7 +55,7 @@ public class CurryingMergeTest {
     public void testItAgainUsingCombineLatest() throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<List<Integer>> fut = new CompletableFuture<>();
         List<Integer> l = new ArrayList<>();
-        Subscriber<Integer> s = subscribingList(fut, l);
+        Subscriber<Integer> s = CompletableFutureSubscriber.subscribingList(fut, l);
         PublishingQueue<Integer> q1 = new PublishingQueue<>();
         PublishingQueue<Integer> q2 = new PublishingQueue<>();
         Flux.combineLatest(q1,q2,Integer::sum).subscribe(s);
@@ -83,7 +82,7 @@ public class CurryingMergeTest {
 
         CompletableFuture<Queue<Integer>> f = new CompletableFuture<>();
 
-        Subscriber<Integer> testingSubscriber = subscribingQueue(f, q);
+        Subscriber<Integer> testingSubscriber = CompletableFutureSubscriber.subscribingQueue(f, q);
 
         biFunctionTransformer(Integer::sum).apply(nodeA, nodeB).subscribe(testingSubscriber);
 
@@ -137,7 +136,7 @@ public class CurryingMergeTest {
 
         CompletableFuture<Queue<Float>> f = new CompletableFuture<>();
 
-        Subscriber<Float> testingSubscriber = subscribingQueue(f, q);
+        Subscriber<Float> testingSubscriber = CompletableFutureSubscriber.subscribingQueue(f, q);
 
         biFunctionTransformer(sum).apply(nodeA, nodeB).subscribe(testingSubscriber);
 
@@ -188,7 +187,7 @@ public class CurryingMergeTest {
 
         CompletableFuture<Queue<Float>> f = new CompletableFuture<>();
 
-        Subscriber<Float> testingSubscriber = subscribingQueue(f, q);
+        Subscriber<Float> testingSubscriber = CompletableFutureSubscriber.subscribingQueue(f, q);
 
         ((Publisher<Float>)curryingMerge(sum, nodeA, nodeB, nodeC)).subscribe(testingSubscriber);
 
@@ -256,7 +255,7 @@ public class CurryingMergeTest {
 
         CompletableFuture<Queue<Integer>> f = new CompletableFuture<>();
 
-        Subscriber<Integer> testingSubscriber = subscribingQueue(f, q);
+        Subscriber<Integer> testingSubscriber = CompletableFutureSubscriber.subscribingQueue(f, q);
 
         ((Publisher<Integer>)curryingMerge(sum, nodeA, nodeB, nodeC, nodeD)).subscribe(testingSubscriber);
 

@@ -11,7 +11,7 @@ import java.util.concurrent.*;
 import java.util.function.BinaryOperator;
 
 import static com.github.dfauth.stream.dag.CurryingMergeTest.pause;
-import static com.github.dfauth.stream.dag.Utils.subscribingQueue;
+import static com.github.dfauth.stream.dag.CompletableFutureSubscriber.subscribingQueue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
