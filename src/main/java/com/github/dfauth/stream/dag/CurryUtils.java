@@ -1,12 +1,9 @@
 package com.github.dfauth.stream.dag;
 
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -22,19 +19,21 @@ public class CurryUtils {
 
     public static <T,R,S> BiFunction<Publisher<T>,Publisher<R>,Publisher<S>> biFunctionTransformer(Function<T,Function<R,S>> f) {
 
-        return (left, right) -> {
+        return new CachingTransformer<>(f);
 
-            // left and right streams are both split
-            Flux<T> leftShare = Flux.from(left).share();
-            Flux<R> rightShare = Flux.from(right).share();
-
-            // another copy is used to transform the stream to the output
-            Publisher<S> leftOutput = combineLatest(f).apply(leftShare).apply(rightShare);
-            Publisher<S> rightOutput = combineLatest(uncurry(f).flip()).apply(rightShare).apply(leftShare);
-
-            // the results are merged into one stream
-            return Flux.from(leftOutput).mergeWith(rightOutput);
-        };
+//        return (left, right) -> {
+//
+//            // left and right streams are both split
+//            Flux<T> leftShare = Flux.from(left).share();
+//            Flux<R> rightShare = Flux.from(right).share();
+//
+//            // another copy is used to transform the stream to the output
+//            Publisher<S> leftOutput = combineLatest(f).apply(leftShare).apply(rightShare);
+//            Publisher<S> rightOutput = combineLatest(uncurry(f).flip()).apply(rightShare).apply(leftShare);
+//
+//            // the results are merged into one stream
+//            return Flux.from(leftOutput).mergeWith(rightOutput);
+//        };
     }
 
     public static <T,S,R> Function<Publisher<T>, Function<Publisher<S>,Publisher<R>>> combineLatest(BiFunction<T,S,R> f) {
@@ -42,17 +41,7 @@ public class CurryUtils {
     }
 
     public static <T,S,R> Function<Publisher<T>, Function<Publisher<S>,Publisher<R>>> combineLatest(Function<T,Function<S,R>> f) {
-
-        return cachedInput -> {
-            // Both a Function<T,Optional<R>> and a Subscriber<Function<T,R>> - used to map the input
-            SubscriberFunction<S, R> subscriberFn = new SubscriberFunction<>();
-
-            // cachedInput is fed to the curriedFn to create a partially applied fn cached in subscriberFn
-            Flux.from(cachedInput).map(f).subscribe(subscriberFn);
-
-            // return a publisher which will stream the input transformed by the cached partially applied function
-            return input -> Flux.from(input).flatMap(((Function<S, Optional<R>>)subscriberFn).andThen(Mono::justOrEmpty));
-        };
+        return new OneSidedCachingTransformer<>(f);
     }
 
     public static <T,S,R> Publisher<?> curryingMerge(Function<T, Function<S,R>> f, Publisher<?>... publishers) {
