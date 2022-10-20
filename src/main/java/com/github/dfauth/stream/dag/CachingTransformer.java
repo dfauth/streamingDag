@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static com.github.dfauth.function.Function2.asFunction2;
 import static com.github.dfauth.function.Function2.uncurry;
 
 @Slf4j
@@ -14,6 +15,10 @@ public class CachingTransformer<T,S,R> implements BiFunction<Publisher<T>, Publi
 
     private final OneSidedCachingTransformer<T, R, S> leftTransformer;
     private final OneSidedCachingTransformer<R, T, S> rightTransformer;
+
+    public CachingTransformer(BiFunction<T, R, S> f) {
+        this(asFunction2(f).curried());
+    }
 
     public CachingTransformer(Function<T, Function<R, S>> f) {
         this.leftTransformer = new OneSidedCachingTransformer<>(f);

@@ -18,22 +18,7 @@ public class CurryUtils {
     }
 
     public static <T,R,S> BiFunction<Publisher<T>,Publisher<R>,Publisher<S>> biFunctionTransformer(Function<T,Function<R,S>> f) {
-
         return new CachingTransformer<>(f);
-
-//        return (left, right) -> {
-//
-//            // left and right streams are both split
-//            Flux<T> leftShare = Flux.from(left).share();
-//            Flux<R> rightShare = Flux.from(right).share();
-//
-//            // another copy is used to transform the stream to the output
-//            Publisher<S> leftOutput = combineLatest(f).apply(leftShare).apply(rightShare);
-//            Publisher<S> rightOutput = combineLatest(uncurry(f).flip()).apply(rightShare).apply(leftShare);
-//
-//            // the results are merged into one stream
-//            return Flux.from(leftOutput).mergeWith(rightOutput);
-//        };
     }
 
     public static <T,S,R> Function<Publisher<T>, Function<Publisher<S>,Publisher<R>>> combineLatest(BiFunction<T,S,R> f) {
