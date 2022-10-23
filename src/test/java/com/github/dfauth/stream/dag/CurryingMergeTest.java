@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -14,6 +13,7 @@ import java.util.function.Function;
 
 import static com.github.dfauth.stream.dag.CurryUtils.biFunctionTransformer;
 import static com.github.dfauth.stream.dag.CurryUtils.curryingMerge;
+import static com.github.dfauth.stream.dag.NonCompletingPublisher.supply;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,7 +25,7 @@ public class CurryingMergeTest {
     public void testIt() throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<Integer> fut = new CompletableFuture<>();
         Subscriber<Integer> s = CompletableFutureSubscriber.subscribingFuture(fut);
-        biFunctionTransformer(Integer::sum).apply(Mono.just(1),Mono.just(2))
+        biFunctionTransformer(Integer::sum).apply(supply(1),supply(2))
                 .subscribe(s);
         assertEquals(3, (int)fut.get(10, TimeUnit.SECONDS));
     }

@@ -26,7 +26,7 @@ public class CurryUtils {
     }
 
     public static <T,S,R> Function<Publisher<T>, Function<Publisher<S>,Publisher<R>>> combineLatest(Function<T,Function<S,R>> f) {
-        return new OneSidedCachingTransformer<>(f);
+        return new OneSidedCachingTransformer<>(f).curried();
     }
 
     public static <T,S,R> Publisher<?> curryingMerge(Function<T, Function<S,R>> f, Publisher<?>... publishers) {

@@ -1,14 +1,17 @@
 package com.github.dfauth.stream.dag;
 
+import com.github.dfauth.function.Function2;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>, Queue<T> {
 
     private Subscriber<? super T> subscriber = null;
+    private AtomicBoolean completed = new AtomicBoolean(false);
 
     @Override
     public boolean offer(T t) {
@@ -38,6 +41,7 @@ public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>
 
             @Override
             public void cancel() {
+                stop();
             }
         }));
     }
@@ -53,6 +57,10 @@ public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>
     }
 
     public void stop() {
-        Optional.ofNullable(this.subscriber).ifPresent(Subscriber::onComplete);
+        completed.set(Optional.ofNullable(this.subscriber).map(Function2.peek(Subscriber::onComplete)).isPresent());
+    }
+
+    public boolean isStopped() {
+        return completed.get();
     }
 }
