@@ -11,6 +11,10 @@ public interface Function4<A, B, C, D, E> {
         return (a, b, c, d) -> function3(f.apply(a)).apply(b, c, d);
     }
 
+    static <A,B,C,D,E> Function<A, Function<B, Function<C, Function<D, E>>>> unwind(Function4<A,B,C,D,E> f) {
+        return f.unwind();
+    }
+
     E apply(A a, B b, C c, D d);
 
     default Function<A, Function3<B, C, D, E>> curry() {

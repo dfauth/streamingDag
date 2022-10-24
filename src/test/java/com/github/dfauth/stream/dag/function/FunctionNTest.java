@@ -1,6 +1,7 @@
 package com.github.dfauth.stream.dag.function;
 
 import com.github.dfauth.stream.dag.CachingTransformer;
+import com.github.dfauth.stream.dag.PublishingQueue;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -46,6 +47,38 @@ public class FunctionNTest {
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
+        }
+    }
+
+
+    @Test
+    public void testFunction4() throws InterruptedException {
+        {
+            Function4<A,B,C,D,I> f = FunctionNTest::doit4;
+            Function<A, Function3<B, C, D, I>> f2 = f.curry();
+            Function<A, Function<B, Function<C, Function<D, I>>>> f3 = f.unwind();
+            assertNotNull(f3.apply(new A()).apply(new B()).apply(new C()).apply(new D()));
+        }
+        {
+            Function<A, Function<B, Function<C, Function<D, I>>>> f = Function4.unwind(FunctionNTest::doit4);
+            assertEquals(new I(), f.apply(new A()).apply(new B()).apply(new C()).apply(new D()));
+        }
+        {
+            List<I> out = new ArrayList<>();
+            Function4<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit4);
+            Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()));
+            Flux.from(p).subscribe(out::add);
+            assertEquals(List.of(new I()), out);
+        }
+        {
+            List<Integer> out = new ArrayList<>();
+            Function4<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt4);
+            PublishingQueue<Integer> q1 = new PublishingQueue<>();
+            Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), q1);
+            Flux.from(p).subscribe(out::add);
+            assertEquals(List.of(), out);
+            q1.offer(4);
+            assertEquals(List.of(10), out);
         }
     }
 
@@ -99,5 +132,8 @@ public class FunctionNTest {
             return obj != null && obj instanceof I;
         }
     }
-    
+
+    public static int testInt4(int a, int b, int c, int d) {
+        return a+b+c+d;
+    }
 }
