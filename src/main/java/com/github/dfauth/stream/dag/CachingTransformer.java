@@ -1,5 +1,6 @@
 package com.github.dfauth.stream.dag;
 
+import com.github.dfauth.stream.dag.function.Function3;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -7,24 +8,38 @@ import reactor.core.publisher.Flux;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static com.github.dfauth.function.Function2.asFunction2;
-import static com.github.dfauth.function.Function2.uncurry;
 import static com.github.dfauth.stream.dag.KillSwitch.killSwitch;
+import static com.github.dfauth.stream.dag.function.Function2.function2;
+import static com.github.dfauth.stream.dag.function.Function3.function3;
 
 @Slf4j
 public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>, Publisher<S>>, Monitorable.VoidMonitorable {
+
+    public static <C,D> BiFunction<Publisher<Function<C,D>>,Publisher<C>,Publisher<D>> compose() {
+        return new CachingTransformer<>(Function::apply);
+    }
+
+    public static <A,B,C> BiFunction<Publisher<A>,Publisher<B>,Publisher<C>> compose(BiFunction<A,B,C> f) {
+        return new CachingTransformer<>(f);
+    }
+
+    public static <A,B,C,D> Function3<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>> compose(Function3<A,B,C,D> f) {
+        return function3(a -> b -> c ->
+            CachingTransformer.<C,D>compose().apply(compose(function2(f.unwind())).apply(a, b), c)
+        );
+    }
 
     private final OneSidedCachingTransformer<T, R, S> leftTransformer;
     private final OneSidedCachingTransformer<R, T, S> rightTransformer;
     private Monitor.VoidMonitor monitor;
 
     public CachingTransformer(BiFunction<T, R, S> f) {
-        this(asFunction2(f).curried());
+        this(function2(f).curry());
     }
 
     public CachingTransformer(Function<T, Function<R, S>> f) {
         this.leftTransformer = new OneSidedCachingTransformer<>(f);
-        this.rightTransformer = new OneSidedCachingTransformer<>(uncurry(f).curriedRight());
+        this.rightTransformer = new OneSidedCachingTransformer<>(com.github.dfauth.function.Function2.uncurry(f).curriedRight());
     }
 
     public static <T,R,S> CachingTransformer<T,R,S> stream(BiFunction<T,R,S> f) {

@@ -18,15 +18,13 @@ public class Async {
 
     public static CompletableFuture<Void> async(Runnable r, Executor executor) {
         CompletableFuture<Void> f = new CompletableFuture<>();
-        executor.execute(() -> {
-            tryCatch(() -> {
-                r.run();
-                f.complete(null);
-            }).handleThrowable(t -> {
-                f.completeExceptionally(t);
-                return null;
-            }).build();
-        });
+        executor.execute(() -> tryCatch(() -> {
+            r.run();
+            f.complete(null);
+        }).handleThrowable(t -> {
+            f.completeExceptionally(t);
+            return null;
+        }).build());
         return f;
     }
 

@@ -1,5 +1,6 @@
 package com.github.dfauth.stream.dag;
 
+import com.github.dfauth.stream.dag.function.Function2;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 

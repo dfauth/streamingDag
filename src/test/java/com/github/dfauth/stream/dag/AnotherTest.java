@@ -1,5 +1,9 @@
 package com.github.dfauth.stream.dag;
 
+import com.github.dfauth.stream.dag.function.Function2;
+import com.github.dfauth.stream.dag.function.Function3;
+import com.github.dfauth.stream.dag.function.Function4;
+import com.github.dfauth.stream.dag.function.Function5;
 import com.github.dfauth.trycatch.ExceptionalRunnable;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;

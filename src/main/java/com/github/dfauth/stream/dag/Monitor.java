@@ -5,7 +5,7 @@ import java.util.stream.Stream;
 
 public class Monitor<T> {
 
-    private CompletableFuture<T> f = new CompletableFuture<>();
+    private final CompletableFuture<T> f = new CompletableFuture<>();
 
     public void complete(T t) {
         if (!f.isDone()) {
