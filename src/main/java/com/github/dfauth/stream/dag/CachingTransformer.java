@@ -2,6 +2,7 @@ package com.github.dfauth.stream.dag;
 
 import com.github.dfauth.stream.dag.function.Function3;
 import com.github.dfauth.stream.dag.function.Function4;
+import com.github.dfauth.stream.dag.function.Function5;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -13,6 +14,7 @@ import static com.github.dfauth.stream.dag.KillSwitch.killSwitch;
 import static com.github.dfauth.stream.dag.function.Function2.function2;
 import static com.github.dfauth.stream.dag.function.Function3.function3;
 import static com.github.dfauth.stream.dag.function.Function4.function4;
+import static com.github.dfauth.stream.dag.function.Function5.function5;
 
 @Slf4j
 public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>, Publisher<S>>, Monitorable.VoidMonitorable {
@@ -34,6 +36,12 @@ public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publi
     public static <A,B,C,D,E> Function4<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>> compose(Function4<A,B,C,D,E> f) {
         return function4(a -> b -> c -> d ->
             CachingTransformer.<D,E>compose().apply(compose(function3(f.unwind())).apply(a,b,c),d)
+        );
+    }
+
+    public static <A,B,C,D,E,F> Function5<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>> compose(Function5<A,B,C,D,E,F> f) {
+        return function5(a -> b -> c -> d -> e ->
+            CachingTransformer.<E,F>compose().apply(compose(function4(f.unwind())).apply(a,b,c,d),e)
         );
     }
 

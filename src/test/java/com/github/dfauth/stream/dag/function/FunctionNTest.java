@@ -52,7 +52,7 @@ public class FunctionNTest {
 
 
     @Test
-    public void testFunction4() throws InterruptedException {
+    public void testFunction4() {
         {
             Function4<A,B,C,D,I> f = FunctionNTest::doit4;
             Function<A, Function3<B, C, D, I>> f2 = f.curry();
@@ -79,6 +79,34 @@ public class FunctionNTest {
             assertEquals(List.of(), out);
             q1.offer(4);
             assertEquals(List.of(10), out);
+        }
+    }
+
+    @Test
+    public void testFunction5() {
+        {
+            Function5<A,B,C,D,E,I> f = FunctionNTest::doit5;
+            Function<A, Function4<B, C, D, E, I>> f2 = f.curry();
+            Function<A, Function<B, Function<C, Function<D, Function<E, I>>>>> f3 = f.unwind();
+            assertNotNull(f3.apply(new A()).apply(new B()).apply(new C()).apply(new D()).apply(new E()));
+        }
+        {
+            Function<A, Function<B, Function<C, Function<D, Function<E, I>>>>> f = Function5.unwind(FunctionNTest::doit5);
+            assertEquals(new I(), f.apply(new A()).apply(new B()).apply(new C()).apply(new D()).apply(new E()));
+        }
+        {
+            List<I> out = new ArrayList<>();
+            Function5<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit5);
+            Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()), supply(new E()));
+            Flux.from(p).subscribe(out::add);
+            assertEquals(List.of(new I()), out);
+        }
+        {
+            List<Integer> out = new ArrayList<>();
+            Function5<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt5);
+            Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), supply(4), supply(5));
+            Flux.from(p).subscribe(out::add);
+            assertEquals(List.of(15), out);
         }
     }
 
@@ -135,5 +163,8 @@ public class FunctionNTest {
 
     public static int testInt4(int a, int b, int c, int d) {
         return a+b+c+d;
+    }
+    public static int testInt5(int a, int b, int c, int d, int e) {
+        return a+b+c+d+e;
     }
 }
