@@ -1,8 +1,6 @@
 package com.github.dfauth.stream.dag;
 
-import com.github.dfauth.stream.dag.function.Function3;
-import com.github.dfauth.stream.dag.function.Function4;
-import com.github.dfauth.stream.dag.function.Function5;
+import com.github.dfauth.stream.dag.function.*;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -15,6 +13,9 @@ import static com.github.dfauth.stream.dag.function.Function2.function2;
 import static com.github.dfauth.stream.dag.function.Function3.function3;
 import static com.github.dfauth.stream.dag.function.Function4.function4;
 import static com.github.dfauth.stream.dag.function.Function5.function5;
+import static com.github.dfauth.stream.dag.function.Function6.function6;
+import static com.github.dfauth.stream.dag.function.Function7.function7;
+import static com.github.dfauth.stream.dag.function.Function8.function8;
 
 @Slf4j
 public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>, Publisher<S>>, Monitorable.VoidMonitorable {
@@ -42,6 +43,24 @@ public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publi
     public static <A,B,C,D,E,F> Function5<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>> compose(Function5<A,B,C,D,E,F> f) {
         return function5(a -> b -> c -> d -> e ->
             CachingTransformer.<E,F>compose().apply(compose(function4(f.unwind())).apply(a,b,c,d),e)
+        );
+    }
+
+    public static <A,B,C,D,E,F,G> Function6<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>> compose(Function6<A,B,C,D,E,F,G> _f) {
+        return function6(a -> b -> c -> d -> e -> f ->
+            CachingTransformer.<F,G>compose().apply(compose(function5(_f.unwind())).apply(a,b,c,d,e),f)
+        );
+    }
+
+    public static <A,B,C,D,E,F,G,H> Function7<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>,Publisher<H>> compose(Function7<A,B,C,D,E,F,G,H> _f) {
+        return function7(a -> b -> c -> d -> e -> f -> g ->
+            CachingTransformer.<G,H>compose().apply(compose(function6(_f.unwind())).apply(a,b,c,d,e,f),g)
+        );
+    }
+
+    public static <A,B,C,D,E,F,G,H,I> Function8<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>,Publisher<H>,Publisher<I>> compose(Function8<A,B,C,D,E,F,G,H,I> _f) {
+        return function8(a -> b -> c -> d -> e -> f -> g -> h ->
+            CachingTransformer.<H,I>compose().apply(compose(function7(_f.unwind())).apply(a,b,c,d,e,f,g),h)
         );
     }
 
