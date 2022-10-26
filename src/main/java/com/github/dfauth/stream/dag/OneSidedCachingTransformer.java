@@ -30,10 +30,10 @@ public class OneSidedCachingTransformer<T,R,S> implements BiFunction<Publisher<T
     public Publisher<S> apply(Publisher<T> cachedPublisher, Publisher<R> publisher) {
 
         // Both a Function<T,Optional<R>> and a Subscriber<Function<T,R>> - used to map the input
-        SubscriberFunction<R,S> subscriberFn = new SubscriberFunction<>();
+        SubscriberFunction<T,R,S> subscriberFn = new SubscriberFunction<>(f);
 
         // cachedInput is fed to the curriedFn to create a partially applied fn cached in subscriberFn
-        Flux.from(cachedPublisher).map(f).subscribe(subscriberFn);
+        Flux.from(cachedPublisher).subscribe(subscriberFn);
 
         // return a publisher which will stream the input transformed by the cached partially applied function
         KillSwitch<S> killSwitch = killSwitch(Flux.from(publisher).flatMap(subscriberFn.andThen(Mono::justOrEmpty)));

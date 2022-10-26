@@ -29,8 +29,8 @@ public class OneSidedCachingTransformerTest {
     public void testThat() {
         Function<Integer, Function<Integer, Integer>> f = asFunction2(Integer::sum).curried();
         List<Integer> out = new ArrayList<>();
-        SubscriberFunction<Integer,Integer> subscriberFn = new SubscriberFunction<>();
-        Flux.from(just(2)).map(f).subscribe(subscriberFn);
+        SubscriberFunction<Integer,Integer,Integer> subscriberFn = new SubscriberFunction<>(f);
+        Flux.from(supply(2)).subscribe(subscriberFn);
         KillSwitch<Integer> killSwitch = killSwitch(just(1).flatMap(subscriberFn.andThen(Mono::justOrEmpty)));
 //        Flux.from(just(add2)).subscribe(subscriberFn);
         Flux.from(killSwitch).subscribe(out::add);

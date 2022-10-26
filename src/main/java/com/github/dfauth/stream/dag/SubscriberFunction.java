@@ -5,22 +5,34 @@ import org.reactivestreams.Subscription;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import static com.github.dfauth.stream.dag.function.Function2.function2;
 
 /**
  * A Consumer<T> who accepts a Function<T,R> and which also implements Function<T,Optional<R>>
  * as long as the consumer is not called, the function operation will always return Optional.empty()
  * once a function is defined, it will be applied to the input when apply is called abd returned wrapped in an Optional
  */
-public class SubscriberFunction<T,R> implements Subscriber<Function<T,R>>, Function<T,Optional<R>>, Monitorable.VoidMonitorable, MonitorAware.VoidConsumer {
+public class SubscriberFunction<T,R,S> implements Subscriber<T>, Function<R,Optional<S>>, Monitorable.VoidMonitorable, MonitorAware.VoidConsumer {
 
-    private final AtomicReference<Function<T, R>> fn = new AtomicReference<>();
+    private final AtomicReference<T> a = new AtomicReference<>();
+    private final Function<T,Function<R,S>> f;
     private Subscription subscription;
     private final Monitor.VoidMonitor monitor = new Monitor.VoidMonitor();
 
+    public SubscriberFunction(BiFunction<T,R,S> f) {
+        this.f = function2(f).unwind();
+    }
+
+    public SubscriberFunction(Function<T,Function<R,S>> f) {
+        this.f = f;
+    }
+
     @Override
-    public Optional<R> apply(T t) {
-        return Optional.ofNullable(fn.get()).map(_f -> _f.apply(t));
+    public Optional<S> apply(R r) {
+        return Optional.ofNullable(a.get()).map(t -> f.apply(t).apply(r));
     }
 
     @Override
@@ -30,8 +42,8 @@ public class SubscriberFunction<T,R> implements Subscriber<Function<T,R>>, Funct
     }
 
     @Override
-    public void onNext(Function<T, R> f) {
-        fn.set(f);
+    public void onNext(T t) {
+        a.set(t);
     }
 
     @Override
