@@ -1,6 +1,6 @@
 package com.github.dfauth.stream.dag;
 
-import org.reactivestreams.Subscriber;
+import org.reactivestreams.Processor;
 import org.reactivestreams.Subscription;
 
 import java.util.Optional;
@@ -15,18 +15,18 @@ import static com.github.dfauth.stream.dag.function.Function2.function2;
  * as long as the consumer is not called, the function operation will always return Optional.empty()
  * once a function is defined, it will be applied to the input when apply is called abd returned wrapped in an Optional
  */
-public class SubscriberFunction<T,R,S> implements Subscriber<T>, Function<R,Optional<S>>, Monitorable.VoidMonitorable, MonitorAware.VoidConsumer {
+public class SubscriberFunction<T,R,S> extends AbstractBaseProcessor<T,T> implements Processor<T,T>, Function<R, Optional<S>>, Monitorable.VoidMonitorable, MonitorAware.VoidConsumer {
 
     private final AtomicReference<T> a = new AtomicReference<>();
     private final Function<T,Function<R,S>> f;
-    private Subscription subscription;
     private final Monitor.VoidMonitor monitor = new Monitor.VoidMonitor();
 
     public SubscriberFunction(BiFunction<T,R,S> f) {
-        this.f = function2(f).unwind();
+        this(function2(f).unwind());
     }
 
     public SubscriberFunction(Function<T,Function<R,S>> f) {
+        super(Function.identity());
         this.f = f;
     }
 
@@ -37,24 +37,26 @@ public class SubscriberFunction<T,R,S> implements Subscriber<T>, Function<R,Opti
 
     @Override
     public void onSubscribe(Subscription subscription) {
-        this.subscription = subscription;
-        subscription.request(Integer.MAX_VALUE);
+        super.onSubscribe(subscription);
+        monitor.handle(this);
     }
 
     @Override
     public void onNext(T t) {
-        a.set(t);
+        if(!t.equals(a.getAndSet(t))) {
+            super.onNext(t);
+        }
     }
 
     @Override
     public void onError(Throwable t) {
-        Optional.ofNullable(subscription).ifPresent(Subscription::cancel);
+        super.onError(t);
         monitor.completeExceptionally(t);
     }
 
     @Override
     public void onComplete() {
-        Optional.ofNullable(subscription).ifPresent(Subscription::cancel);
+        super.onComplete();
         monitor.complete();
     }
 
@@ -69,6 +71,6 @@ public class SubscriberFunction<T,R,S> implements Subscriber<T>, Function<R,Opti
 
     @Override
     public void _onComplete() {
-        onComplete();
+        subscription.cancel();
     }
 }

@@ -23,6 +23,7 @@ public class SubscriberFunctionTest {
         Function<Integer, Function<Integer, Integer>> f2 = Function2.function2(f).curry();
         Function<Integer, Integer> add2 = f2.apply(2);
         SubscriberFunction<Integer,Integer,Integer> tx = new SubscriberFunction<>(f);
+        Flux.from(tx).subscribe(i -> {});
         Flux.from(supply(2)).subscribe(tx);
         assertEquals(List.of(),out);
         Flux.from(just(1)).map(tx).filter(Optional::isPresent).map(Optional::get).subscribe(out::add);

@@ -1,10 +1,13 @@
 package com.github.dfauth.stream.dag;
 
+import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+@Slf4j
 public class NonCompletingPublisher<T> {
 
     public static <T> Publisher<T> supplyAndComplete(T... ts) {
@@ -19,15 +22,18 @@ public class NonCompletingPublisher<T> {
         return subscriber -> {
             subscriber.onSubscribe(new Subscription() {
                 @Override
-                public void request(long l) {}
+                public void request(long l) {
+                    log.info("request({})",l);
+                    AtomicLong i = new AtomicLong(l);
+                    Stream.of(ts).filter(t -> i.decrementAndGet()>0).forEach(subscriber::onNext);
+                    if(doComplete) {
+                        subscriber.onComplete();
+                    }
+                }
 
                 @Override
                 public void cancel() {}
             });
-            Stream.of(ts).forEach(subscriber::onNext);
-            if(doComplete) {
-                subscriber.onComplete();
-            }
         };
     }
 }

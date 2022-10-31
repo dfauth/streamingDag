@@ -84,18 +84,16 @@ public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publi
     @Override
     public Publisher<S> apply(Publisher<T> left, Publisher<R> right) {
 
-        Flux<T> leftShare = Flux.from(left).share();
-        Flux<R> rightShare = Flux.from(right).share();
-
         // another copy is used to transform the stream to the output
-        Function<Publisher<R>, Publisher<S>> leftOutput = leftTransformer.curried().apply(leftShare);
-        Function<Publisher<T>, Publisher<S>> rightOutput = rightTransformer.curried().apply(rightShare);
+        Function<Publisher<R>, Publisher<S>> leftOutput = leftTransformer.curried().apply(left);
+        Function<Publisher<T>, Publisher<S>> rightOutput = rightTransformer.curried().apply(right);
 
         // the results are merged into one stream
-        KillSwitch<S> k = killSwitch(Flux.from(leftOutput.apply(rightShare)).mergeWith(rightOutput.apply(leftShare)));
+        KillSwitch<S> k = killSwitch(Flux.from(leftOutput.apply(rightTransformer)).mergeWith(rightOutput.apply(leftTransformer)));
         this.monitor = Monitor.VoidMonitor.from(leftTransformer.monitor(), rightTransformer.monitor());
         k.handle(this);
         return k;
+//        return Flux.from(leftOutput.apply(rightTransformer.getThingy())).mergeWith(rightOutput.apply(leftTransformer.getThingy()));
     }
 
     @Override

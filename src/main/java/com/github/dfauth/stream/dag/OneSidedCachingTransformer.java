@@ -3,6 +3,7 @@ package com.github.dfauth.stream.dag;
 import com.github.dfauth.function.Function2;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -13,24 +14,23 @@ import static com.github.dfauth.function.Function2.asFunction2;
 import static com.github.dfauth.stream.dag.KillSwitch.killSwitch;
 
 @Slf4j
-public class OneSidedCachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>,Publisher<S>>, Monitorable.VoidMonitorable {
+public class OneSidedCachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>,Publisher<S>>, Publisher<T>, Monitorable.VoidMonitorable {
 
-    private final Function<T, Function<R,S>> f;
     private Monitor.VoidMonitor monitor;
+    private SubscriberFunction<T, R, S> subscriberFn;
 
     public OneSidedCachingTransformer(BiFunction<T,R,S> f) {
         this(asFunction2(f).curried());
     }
 
     public OneSidedCachingTransformer(Function<T,Function<R,S>> f) {
-        this.f = f;
+        subscriberFn = new SubscriberFunction<>(f);
     }
 
     @Override
     public Publisher<S> apply(Publisher<T> cachedPublisher, Publisher<R> publisher) {
 
         // Both a Function<T,Optional<R>> and a Subscriber<Function<T,R>> - used to map the input
-        SubscriberFunction<T,R,S> subscriberFn = new SubscriberFunction<>(f);
 
         // cachedInput is fed to the curriedFn to create a partially applied fn cached in subscriberFn
         Flux.from(cachedPublisher).subscribe(subscriberFn);
@@ -50,5 +50,10 @@ public class OneSidedCachingTransformer<T,R,S> implements BiFunction<Publisher<T
     @Override
     public Monitor.VoidMonitor monitor() {
         return monitor;
+    }
+
+    @Override
+    public void subscribe(Subscriber<? super T> subscriber) {
+        subscriberFn.subscribe(subscriber);
     }
 }
