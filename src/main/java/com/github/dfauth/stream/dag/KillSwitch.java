@@ -12,6 +12,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public class KillSwitch<T> implements Processor<T, T>, AutoCloseable, MonitorAware.VoidConsumer, Monitorable.VoidMonitorable, Subscription {
 
+    private final Publisher<T> publisher;
+
+    public KillSwitch(Publisher<T> publisher) {
+        this.publisher = publisher;
+    }
+
+    public KillSwitch() {
+        this(null);
+    }
+
     public static <T> KillSwitch<T> killSwitch(Subscriber<T> subscriber) {
         KillSwitch<T> k = new KillSwitch<>();
         k.subscribe(subscriber);
@@ -25,9 +35,7 @@ public class KillSwitch<T> implements Processor<T, T>, AutoCloseable, MonitorAwa
     }
 
     public static <T> KillSwitch<T> killSwitch(Publisher<T> publisher) {
-        KillSwitch<T> k = new KillSwitch<>();
-        publisher.subscribe(k);
-        return k;
+        return new KillSwitch<>(publisher);
     }
 
     public static <T> KillSwitch<T> killSwitch(Publisher<T> publisher, VoidMonitorable monitorable) {
@@ -44,6 +52,7 @@ public class KillSwitch<T> implements Processor<T, T>, AutoCloseable, MonitorAwa
     @Override
     public void subscribe(Subscriber<? super T> subscriber) {
         this.subscriber = subscriber;
+        Optional.ofNullable(publisher).ifPresent(p -> p.subscribe(this));
         initialise();
     }
 

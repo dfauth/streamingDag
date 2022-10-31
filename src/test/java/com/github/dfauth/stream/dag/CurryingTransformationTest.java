@@ -1,14 +1,17 @@
 package com.github.dfauth.stream.dag;
 
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 
 import static com.github.dfauth.stream.dag.CurryingMergeTest.pause;
 import static com.github.dfauth.stream.dag.CompletableFutureSubscriber.subscribingQueue;
@@ -31,7 +34,7 @@ public class CurryingTransformationTest {
 
         Subscriber<Integer> testingSubscriber = subscribingQueue(f, q);
 
-        CurryUtils.combineLatest(sum).apply(nodeA).apply(nodeB).subscribe(testingSubscriber);
+        CurryUtils.combineLatest(sum, i -> {}).apply(nodeA).apply(nodeB).subscribe(testingSubscriber);
 
         assertTrue(q.size() == 0);
 

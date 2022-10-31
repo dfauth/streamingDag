@@ -7,18 +7,25 @@ import org.reactivestreams.Subscription;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>, Queue<T> {
 
     private Subscriber<? super T> subscriber = null;
     private AtomicBoolean completed = new AtomicBoolean(false);
+    private AtomicLong countdown = new AtomicLong(0);
 
     @Override
     public boolean offer(T t) {
-        return Optional.ofNullable(subscriber).map(s -> {
+        return Optional.ofNullable(subscriber).filter(this::pending).map(s -> {
             s.onNext(t);
+            countdown.decrementAndGet();
             return true;
         }).orElse(false);
+    }
+
+    private boolean pending(Subscriber<? super T> subscriber) {
+        return countdown.get()>0;
     }
 
     @Override
@@ -37,10 +44,12 @@ public class PublishingQueue<T> extends AbstractQueue<T> implements Publisher<T>
         Optional.ofNullable(this.subscriber).ifPresent(s -> s.onSubscribe(new Subscription() {
             @Override
             public void request(long l) {
+                countdown.set(l);
             }
 
             @Override
             public void cancel() {
+                countdown.set(0);
                 stop();
             }
         }));

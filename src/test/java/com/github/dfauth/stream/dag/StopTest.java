@@ -3,6 +3,7 @@ package com.github.dfauth.stream.dag;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +25,7 @@ public class StopTest {
 
         OneSidedCachingTransformer<Integer, Integer, Integer> t = new OneSidedCachingTransformer<>(add);
         TestSubscriber<Integer> subscriber = new TestSubscriber<>();
+        Flux.from(t).subscribe(i -> {}); // needed to complete subscription on cachedPublisher side and request elements
         t.apply(q1, q2).subscribe(subscriber);
         q1.offer(1);
         assertTrue(subscriber.isEmpty());
@@ -48,6 +50,7 @@ public class StopTest {
         PublishingQueue<Integer> q2 = new PublishingQueue<>();
 
         OneSidedCachingTransformer<Integer, Integer, Integer> t = new OneSidedCachingTransformer<>(add);
+        Flux.from(t).subscribe(i -> {}); // needed to complete subscription on cachedPublisher side and request elements
         TestSubscriber<Integer> subscriber = new TestSubscriber<>();
         t.apply(q1, q2).subscribe(subscriber);
         q1.offer(1);
@@ -73,6 +76,7 @@ public class StopTest {
         PublishingQueue<Integer> q2 = new PublishingQueue<>();
 
         OneSidedCachingTransformer<Integer, Integer, Integer> t = new OneSidedCachingTransformer<>(add);
+        Flux.from(t).subscribe(i -> {}); // needed to complete subscription on cachedPublisher side and request elements
         TestSubscriber<Integer> subscriber = new TestSubscriber<>();
         t.apply(q1, q2).subscribe(subscriber);
         q1.offer(1);
