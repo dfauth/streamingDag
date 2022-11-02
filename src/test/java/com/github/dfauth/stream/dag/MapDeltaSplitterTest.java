@@ -1,13 +1,14 @@
 package com.github.dfauth.stream.dag;
 
+import com.github.dfauth.stream.dag.function.Tuple3;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.dfauth.stream.dag.Subscribers.fromConsumer;
 import static com.github.dfauth.stream.dag.function.Lists.extendedList;
 import static org.junit.Assert.assertEquals;
 
@@ -17,13 +18,13 @@ public class MapDeltaSplitterTest {
     public void testIt() throws InterruptedException {
         MapDeltaSplitter<String, Integer> splitter = new MapDeltaSplitter<>();
         PublishingQueue<Map<String,Integer>> q = new PublishingQueue<>();
-        q.subscribe(splitter);
+        Tuple3<Publisher<Map<String, Integer>>, Publisher<Map<String, Integer>>, Publisher<Map<String, Integer>>> t3 = splitter.apply(q);
         List<Map<String, Integer>> unchanged = new ArrayList<>();
         List<Map<String, Integer>> modified = new ArrayList<>();
         List<Map<String, Integer>> removed = new ArrayList<>();
-        Flux.from(splitter).subscribe(unchanged::add);
-        splitter.subscribeModified(fromConsumer(modified::add));
-        splitter.subscribeRemoved(fromConsumer(removed::add));
+        Flux.from(t3._1()).subscribe(modified::add);
+        Flux.from(t3._2()).subscribe(unchanged::add);
+        Flux.from(t3._3()).subscribe(removed::add);
 
         q.offer(Map.of("a",1));
         Thread.sleep(100);
