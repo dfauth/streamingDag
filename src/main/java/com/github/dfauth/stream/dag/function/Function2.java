@@ -14,6 +14,10 @@ public interface Function2<A, B, C> extends BiFunction<A, B, C> {
         return (a, b) -> f.apply(a).apply(b);
     }
 
+    static <A,B,C> Function2<A,B,C> uncurry(Function<A,Function<B,C>> f) {
+        return function2(f);
+    }
+
     default Function<A, Function<B, C>> curry() {
         return a -> b -> apply(a, b);
     }
@@ -21,4 +25,5 @@ public interface Function2<A, B, C> extends BiFunction<A, B, C> {
     default Function<A, Function<B, C>> unwind() {
         return curry();
     }
+
 }
