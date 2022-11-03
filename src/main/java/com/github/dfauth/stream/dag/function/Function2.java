@@ -18,6 +18,10 @@ public interface Function2<A, B, C> extends BiFunction<A, B, C> {
         return function2(f);
     }
 
+    static <A,B,C> Function2<B,A,C> flip(Function2<A,B,C> f) {
+        return (b,a) -> f.apply(a,b);
+    }
+
     default Function<A, Function<B, C>> curry() {
         return a -> b -> apply(a, b);
     }
@@ -26,4 +30,7 @@ public interface Function2<A, B, C> extends BiFunction<A, B, C> {
         return curry();
     }
 
+    default Function2<B,A,C> flip() {
+        return flip(this);
+    }
 }

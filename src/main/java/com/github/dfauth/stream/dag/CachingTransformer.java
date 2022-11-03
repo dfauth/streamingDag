@@ -9,6 +9,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static com.github.dfauth.stream.dag.KillSwitch.killSwitch;
+import static com.github.dfauth.stream.dag.NonCompletingPublisher.supply;
 import static com.github.dfauth.stream.dag.function.Function2.function2;
 import static com.github.dfauth.stream.dag.function.Function3.function3;
 import static com.github.dfauth.stream.dag.function.Function4.function4;
@@ -16,12 +17,17 @@ import static com.github.dfauth.stream.dag.function.Function5.function5;
 import static com.github.dfauth.stream.dag.function.Function6.function6;
 import static com.github.dfauth.stream.dag.function.Function7.function7;
 import static com.github.dfauth.stream.dag.function.Function8.function8;
+import static java.util.function.Function.identity;
 
 @Slf4j
 public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>, Publisher<S>>, Monitorable.VoidMonitorable {
 
     public static <C,D> BiFunction<Publisher<Function<C,D>>,Publisher<C>,Publisher<D>> compose() {
         return new CachingTransformer<>(Function::apply);
+    }
+
+    public static <A,B> Function<Publisher<A>,Publisher<B>> compose(Function<A,B> f) {
+        return function2(new CachingTransformer<>(a -> f)).unwind().apply(supply(identity()));
     }
 
     public static <A,B,C> BiFunction<Publisher<A>,Publisher<B>,Publisher<C>> compose(BiFunction<A,B,C> f) {
