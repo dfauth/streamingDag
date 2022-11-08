@@ -24,4 +24,12 @@ public interface Function3<A, B, C, D> {
     default Function<A, Function<B, Function<C, D>>> unwind() {
         return a -> curry().apply(a).unwind();
     }
+
+    default Function3<C, B, A, D> flip() {
+        return flip3(this);
+    }
+
+    static <A,B,C,D> Function3<C,B,A,D> flip3(Function3<A, B, C, D> _f) {
+        return (c,b,a) -> _f.apply(a,b,c);
+    }
 }

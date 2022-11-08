@@ -30,8 +30,8 @@ public class NettingTest {
             BiFunction<RiskImpact, BigDecimal, RiskImpact> f2 = NettingTest::risk;
             Function<Position, RiskImpact> f = f1.andThen(Function2.function2(f2).flip().unwind().apply(ri));
 
-            Function<Publisher<Position>, Publisher<RiskImpact>> g1 = CachingTransformer.compose(f1);
-            BiFunction<Publisher<RiskImpact>, Publisher<BigDecimal>, Publisher<RiskImpact>> g2 = CachingTransformer.compose(f2);
+            Function<Publisher<Position>, Publisher<RiskImpact>> g1 = CachingTransformer.compose1(f1);
+            BiFunction<Publisher<RiskImpact>, Publisher<BigDecimal>, Publisher<RiskImpact>> g2 = CachingTransformer.compose2(f2);
             PublishingQueue<Position> q = new PublishingQueue<>();
             Publisher<RiskImpact> p = g2.apply(g1.apply(q),supply(ri));
             Thingy<RiskImpact> out = new Thingy<>();

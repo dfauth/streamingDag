@@ -7,9 +7,9 @@ import reactor.core.publisher.Flux;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.github.dfauth.stream.dag.KillSwitch.killSwitch;
-import static com.github.dfauth.stream.dag.NonCompletingPublisher.supply;
 import static com.github.dfauth.stream.dag.function.Function2.function2;
 import static com.github.dfauth.stream.dag.function.Function3.function3;
 import static com.github.dfauth.stream.dag.function.Function4.function4;
@@ -17,57 +17,66 @@ import static com.github.dfauth.stream.dag.function.Function5.function5;
 import static com.github.dfauth.stream.dag.function.Function6.function6;
 import static com.github.dfauth.stream.dag.function.Function7.function7;
 import static com.github.dfauth.stream.dag.function.Function8.function8;
-import static java.util.function.Function.identity;
 
 @Slf4j
 public class CachingTransformer<T,R,S> implements BiFunction<Publisher<T>, Publisher<R>, Publisher<S>>, Monitorable.VoidMonitorable {
 
-    public static <C,D> BiFunction<Publisher<Function<C,D>>,Publisher<C>,Publisher<D>> compose() {
-        return new CachingTransformer<>(Function::apply);
+    public static <A, D> Function2<A, Function<A, D>, D> combine() {
+        return (a,f) -> f.apply(a);
     }
 
-    public static <A,B> Function<Publisher<A>,Publisher<B>> compose(Function<A,B> f) {
-        return function2(new CachingTransformer<>(a -> f)).unwind().apply(supply(identity()));
+    public static <A> Supplier<Publisher<A>> compose0() {
+        return () -> new AbstractPublisher<>(){};
     }
 
-    public static <A,B,C> BiFunction<Publisher<A>,Publisher<B>,Publisher<C>> compose(BiFunction<A,B,C> f) {
-        return new CachingTransformer<>(f);
+    public static <A,B> Function<Publisher<A>,Publisher<B>> compose1(Function<A,B> _f) {
+        return a -> Flux.from(a).map(_f);
     }
 
-    public static <A,B,C,D> Function3<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>> compose(Function3<A,B,C,D> f) {
+    public static <A,B,C> BiFunction<Publisher<A>,Publisher<B>,Publisher<C>> compose2(BiFunction<A,B,C> _f) {
+        return new CachingTransformer<>(_f);
+    }
+
+    public static <A,B,C,D> Function3<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>> compose3(Function3<A,B,C,D> _f) {
         return function3(a -> b -> c ->
-            CachingTransformer.<C,D>compose().apply(compose(function2(f.unwind())).apply(a, b), c)
-        );
+                compose2(CachingTransformer.<A,D>combine())
+                        .apply(a,compose2(function2(_f.flip().unwind()))
+                                .apply(c,b)));
     }
 
-    public static <A,B,C,D,E> Function4<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>> compose(Function4<A,B,C,D,E> f) {
+    public static <A,B,C,D,E> Function4<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>> compose4(Function4<A,B,C,D,E> _f) {
         return function4(a -> b -> c -> d ->
-            CachingTransformer.<D,E>compose().apply(compose(function3(f.unwind())).apply(a,b,c),d)
-        );
+                compose2(CachingTransformer.<A,E>combine())
+                        .apply(a,compose3(function3(_f.flip().unwind()))
+                                .apply(d,c,b)));
     }
 
-    public static <A,B,C,D,E,F> Function5<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>> compose(Function5<A,B,C,D,E,F> f) {
+    public static <A,B,C,D,E,F> Function5<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>> compose5(Function5<A,B,C,D,E,F> _f) {
         return function5(a -> b -> c -> d -> e ->
-            CachingTransformer.<E,F>compose().apply(compose(function4(f.unwind())).apply(a,b,c,d),e)
-        );
+                compose2(CachingTransformer.<A,F>combine())
+                        .apply(a,compose4(function4(_f.flip().unwind()))
+                                .apply(e,d,c,b)));
     }
 
-    public static <A,B,C,D,E,F,G> Function6<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>> compose(Function6<A,B,C,D,E,F,G> _f) {
+    public static <A,B,C,D,E,F,G> Function6<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>> compose6(Function6<A,B,C,D,E,F,G> _f) {
         return function6(a -> b -> c -> d -> e -> f ->
-            CachingTransformer.<F,G>compose().apply(compose(function5(_f.unwind())).apply(a,b,c,d,e),f)
-        );
+                compose2(CachingTransformer.<A,G>combine())
+                        .apply(a,compose5(function5(_f.flip().unwind()))
+                                .apply(f,e,d,c,b)));
     }
 
-    public static <A,B,C,D,E,F,G,H> Function7<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>,Publisher<H>> compose(Function7<A,B,C,D,E,F,G,H> _f) {
+    public static <A,B,C,D,E,F,G,H> Function7<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>,Publisher<H>> compose7(Function7<A,B,C,D,E,F,G,H> _f) {
         return function7(a -> b -> c -> d -> e -> f -> g ->
-            CachingTransformer.<G,H>compose().apply(compose(function6(_f.unwind())).apply(a,b,c,d,e,f),g)
-        );
+                compose2(CachingTransformer.<A,H>combine())
+                        .apply(a,compose6(function6(_f.flip().unwind()))
+                                .apply(g,f,e,d,c,b)));
     }
 
-    public static <A,B,C,D,E,F,G,H,I> Function8<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>,Publisher<H>,Publisher<I>> compose(Function8<A,B,C,D,E,F,G,H,I> _f) {
+    public static <A,B,C,D,E,F,G,H,I> Function8<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<E>,Publisher<F>,Publisher<G>,Publisher<H>,Publisher<I>> compose8(Function8<A,B,C,D,E,F,G,H,I> _f) {
         return function8(a -> b -> c -> d -> e -> f -> g -> h ->
-            CachingTransformer.<H,I>compose().apply(compose(function7(_f.unwind())).apply(a,b,c,d,e,f,g),h)
-        );
+                compose2(CachingTransformer.<A,I>combine())
+                        .apply(a,compose7(function7(_f.flip().unwind()))
+                                .apply(h,g,f,e,d,c,b)));
     }
 
     private final OneSidedCachingTransformer<T, R, S> leftTransformer;

@@ -43,7 +43,7 @@ public class FunctionNTest {
         }
         {
             List<I> out = new ArrayList<>();
-            Function3<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit3);
+            Function3<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<I>> f = CachingTransformer.compose3(FunctionNTest::doit3);
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
@@ -65,14 +65,14 @@ public class FunctionNTest {
         }
         {
             List<I> out = new ArrayList<>();
-            Function4<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit4);
+            Function4<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<D>,Publisher<I>> f = CachingTransformer.compose4(FunctionNTest::doit4);
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
         }
         {
             List<Integer> out = new ArrayList<>();
-            Function4<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt4);
+            Function4<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose4(FunctionNTest::testInt4);
             PublishingQueue<Integer> q1 = new PublishingQueue<>();
             Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), q1);
             Flux.from(p).subscribe(out::add);
@@ -96,14 +96,14 @@ public class FunctionNTest {
         }
         {
             List<I> out = new ArrayList<>();
-            Function5<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit5);
+            Function5<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<I>> f = CachingTransformer.compose5(FunctionNTest::doit5);
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()), supply(new E()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
         }
         {
             List<Integer> out = new ArrayList<>();
-            Function5<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt5);
+            Function5<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose5(FunctionNTest::testInt5);
             Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), supply(4), supply(5));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(15), out);
@@ -124,14 +124,14 @@ public class FunctionNTest {
         }
         {
             List<I> out = new ArrayList<>();
-            Function6<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<F>, Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit6);
+            Function6<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<F>, Publisher<I>> f = CachingTransformer.compose6(FunctionNTest::doit6);
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()), supply(new E()), supply(new F()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
         }
         {
             List<Integer> out = new ArrayList<>();
-            Function6<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt6);
+            Function6<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose6(FunctionNTest::testInt6);
             Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), supply(4), supply(5), supply(6));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(21), out);
@@ -152,14 +152,14 @@ public class FunctionNTest {
         }
         {
             List<I> out = new ArrayList<>();
-            Function7<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<F>, Publisher<G>, Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit7);
+            Function7<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<F>, Publisher<G>, Publisher<I>> f = CachingTransformer.compose7(FunctionNTest::doit7);
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()), supply(new E()), supply(new F()), supply(new G()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
         }
         {
             List<Integer> out = new ArrayList<>();
-            Function7<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt7);
+            Function7<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose7(FunctionNTest::testInt7);
             Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), supply(4), supply(5), supply(6), supply(7));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(28), out);
@@ -180,14 +180,14 @@ public class FunctionNTest {
         }
         {
             List<I> out = new ArrayList<>();
-            Function8<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<F>, Publisher<G>, Publisher<H>, Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit8);
+            Function8<Publisher<A>, Publisher<B>, Publisher<C>, Publisher<D>, Publisher<E>, Publisher<F>, Publisher<G>, Publisher<H>, Publisher<I>> f = CachingTransformer.compose8(FunctionNTest::doit8);
             Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()), supply(new D()), supply(new E()), supply(new F()), supply(new G()), supply(new H()));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(new I()), out);
         }
         {
             List<Integer> out = new ArrayList<>();
-            Function8<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose(FunctionNTest::testInt8);
+            Function8<Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>, Publisher<Integer>> f = CachingTransformer.compose8(FunctionNTest::testInt8);
             Publisher<Integer> p = f.apply(supply(1), supply(2), supply(3), supply(4), supply(5), supply(6), supply(7), supply(8));
             Flux.from(p).subscribe(out::add);
             assertEquals(List.of(36), out);

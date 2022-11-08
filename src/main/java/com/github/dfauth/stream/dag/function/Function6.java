@@ -24,4 +24,12 @@ public interface Function6<A, B, C, D, E, F, G> {
     default Function<A, Function<B, Function<C, Function<D, Function<E, Function<F, G>>>>>> unwind() {
         return a -> curry().apply(a).unwind();
     }
+
+    default Function6<F,E,D,C,B,A,G> flip() {
+        return flip6(this);
+    }
+
+    static <A,B,C,D,E,F,G> Function6<F,E,D,C,B,A,G> flip6(Function6<A,B,C,D,E,F,G> _f) {
+        return (f,e,d,c,b,a) -> _f.apply(a,b,c,d,e,f);
+    }
 }
