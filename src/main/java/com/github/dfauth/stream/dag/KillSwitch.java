@@ -87,7 +87,7 @@ public class KillSwitch<T> implements Processor<T, T>, AutoCloseable, MonitorAwa
 
     @Override
     public void _onFailure(Throwable t) {
-
+        onError(t);
     }
 
     @Override
